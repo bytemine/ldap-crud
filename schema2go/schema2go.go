@@ -3,14 +3,14 @@
 package main
 
 import (
+	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"fmt"
+	"log"
 	"os"
 	"os/exec"
-	"bytes"
-	"log"
 	"strings"
 	"text/template"
 )
@@ -37,16 +37,16 @@ import (
 
 var openldapBuiltinAttributes = []attributetype{
 	attributetype{
-		Name: []string{"uidnumber"},
-		Desc: "An integer uniquely identifying a user in an administrative domain",
-		Equality: "integerMatch",
-		Syntax: "1.3.6.1.4.1.1466.115.121.1.27",
+		Name:        []string{"uidnumber"},
+		Desc:        "An integer uniquely identifying a user in an administrative domain",
+		Equality:    "integerMatch",
+		Syntax:      "1.3.6.1.4.1.1466.115.121.1.27",
 		SingleValue: true},
 	attributetype{
-		Name: []string{"gidnumber"},
-		Desc: "An integer uniquely identifying a group in an administrative domain",
-		Equality: "integerMatch",
-		Syntax: "1.3.6.1.4.1.1466.115.121.1.27",
+		Name:        []string{"gidnumber"},
+		Desc:        "An integer uniquely identifying a group in an administrative domain",
+		Equality:    "integerMatch",
+		Syntax:      "1.3.6.1.4.1.1466.115.121.1.27",
 		SingleValue: true}}
 
 var pkg = flag.String("pkg", "objects", "go package to generate code for")
@@ -68,7 +68,7 @@ func init() {
   %v [options] schemafiles...
 `, os.Args[0])
 		flag.PrintDefaults()
-		}
+	}
 
 	flag.Parse()
 	schemaFiles = flag.Args()
@@ -117,7 +117,7 @@ func main() {
 		log.Fatal(err)
 	}
 	objects, err := parseObjects(objectsInput)
-	
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,11 +134,10 @@ func main() {
 
 	// Write the output
 	data := struct {
-		Package string
-		Code    string
+		Package     string
+		Code        string
 		SchemaFiles []string
-		ObjectDesc string
-		
+		ObjectDesc  string
 	}{Package: *pkg, Code: code.String(), SchemaFiles: schemaFiles, ObjectDesc: string(objectsInput)}
 
 	var output io.WriteCloser

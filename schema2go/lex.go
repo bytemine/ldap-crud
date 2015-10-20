@@ -22,20 +22,20 @@ func filterComments(i string) string {
 	inComment := false
 	for _, c := range i {
 		switch string(c) {
-			case "'":
-				if !inComment {
-					inString = !inString
-				}
-			case "#":
-				if !inString {
-					inComment = true
-				}
+		case "'":
+			if !inComment {
+				inString = !inString
+			}
+		case "#":
+			if !inString {
+				inComment = true
+			}
+			continue
+		case "\n":
+			if inComment {
+				inComment = false
 				continue
-			case "\n":
-				if inComment {
-					inComment = false
-					continue
-				}
+			}
 		}
 		if !inComment {
 			out = append(out, c)
@@ -51,7 +51,7 @@ type lexer struct {
 	pos      int
 	items    chan item
 	lastitem item
-	debug		bool
+	debug    bool
 }
 
 // Create a new lexer which lexes the given input

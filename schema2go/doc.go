@@ -52,8 +52,8 @@ For the above example the resulting struct definition would look like this (code
 
 For the conversion following rules are followed:
 
-Names of are derived from the names defined in the schema files by first applying 
-strings.Title() and then removing every "-". Eg. "nick-name" would be converted to 
+Names of are derived from the names defined in the schema files by first applying
+strings.Title() and then removing every "-". Eg. "nick-name" would be converted to
 "NickName".
 
 The struct contains exported boolean fields for every object class it represents.
@@ -80,7 +80,7 @@ FilterObjectClass method to get the preferred object class for searching.
 
 [2] https://github.com/rbns/ldap
 
-[3] https://raw.githubusercontent.com/rbns/ldap/master/entry.go 
+[3] https://raw.githubusercontent.com/rbns/ldap/master/entry.go
 
 [4] https://www.ietf.org/rfc/rfc4517.txt
 
