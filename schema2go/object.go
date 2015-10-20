@@ -44,7 +44,7 @@ return o.dn
 }
 
 func (o *{{ .Name }})SetDn() {
-o.dn = fmt.Sprintf({{ .DNFormat }}, {{range $v := .DNAttributes}}o.{{$v}}, {{end}})
+o.dn = fmt.Sprintf("{{ .DNFormat }}", []string{ {{range $v := .DNAttributes}}o.{{$v | title | replace }}, {{end}} }...)
 }
 
 func (o *{{ .Name }})MarshalLDAP() (*ldap.Entry, error) {
@@ -98,7 +98,8 @@ type Object struct {
 	Desc              string
 	ObjectClasses     []string
 	FilterObjectClass string
-	//	DNAttribute   string
+	DNFormat	string
+	DNAttributes   	[]string
 }
 
 // Generates Go-code for itself. The struct and it's methods implement the Item interface of
@@ -127,7 +128,7 @@ func (o Object) Code() (string, error) {
 		DNAttributes      []string
 		Must              map[string]*attributetype
 		May               map[string]*attributetype
-	}{Name: o.Name, Desc: o.Desc, FilterObjectClass: o.FilterObjectClass}
+	}{Name: o.Name, Desc: o.Desc, FilterObjectClass: o.FilterObjectClass, DNFormat: o.DNFormat, DNAttributes: o.DNAttributes}
 
 	data.ObjectClasses = make(map[string]struct {
 		Must map[string]*attributetype
