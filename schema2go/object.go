@@ -43,6 +43,10 @@ func (o *{{ .Name }})Dn() string {
 return o.dn
 }
 
+{{ if .DNFormat }}func (o *{{ .Name }})FormatDn() {
+o.dn = fmt.Sprintf("{{ .DNFormat }}", []string{ {{range $v := .DNAttributes}}o.{{$v | title | replace }}, {{end}} }...)
+}{{end}}
+
 func (o *{{ .Name }})MarshalLDAP() (*ldap.Entry, error) {
 e := ldap.NewEntry(o.dn)
 {{ range $k, $v := .ObjectClasses }}
@@ -90,11 +94,12 @@ copy(c.{{ $k | title | replace }}, o.{{ $k | title | replace }}){{end}}{{end}}{{
 // consist. Out of this description the code necessary for marshaling to and unmarshaling from
 // such objects is generated with the Code method.
 type Object struct {
-	Name          string
-	Desc          string
-	ObjectClasses []string
+	Name              string
+	Desc              string
+	ObjectClasses     []string
 	FilterObjectClass string
-//	DNAttribute   string
+	DNFormat          string
+	DNAttributes      []string
 }
 
 // Generates Go-code for itself. The struct and it's methods implement the Item interface of
@@ -103,8 +108,8 @@ func (o Object) Code() (string, error) {
 	funcMap := template.FuncMap{
 		"title":   strings.Title,
 		"replace": nameReplacer.Replace,
-		"lower": strings.ToLower,
-		"join":	func(l []string) string {
+		"lower":   strings.ToLower,
+		"join": func(l []string) string {
 			return strings.Join(l, ", ")
 		},
 	}
@@ -114,16 +119,21 @@ func (o Object) Code() (string, error) {
 	data := struct {
 		Name          string
 		Desc          string
-		ObjectClasses map[string]struct{	Must map[string]*attributetype
-							May map[string]*attributetype}
-		FilterObjectClass	string
-//		DNAttribute   string
-		Must          map[string]*attributetype
-		May           map[string]*attributetype
+		ObjectClasses map[string]struct {
+			Must map[string]*attributetype
+			May  map[string]*attributetype
+		}
+		FilterObjectClass string
+		DNFormat          string
+		DNAttributes      []string
+		Must              map[string]*attributetype
+		May               map[string]*attributetype
 	}{Name: o.Name, Desc: o.Desc, FilterObjectClass: o.FilterObjectClass}
 
-	data.ObjectClasses = make(map[string]struct{	Must map[string]*attributetype
-							May map[string]*attributetype})
+	data.ObjectClasses = make(map[string]struct {
+		Must map[string]*attributetype
+		May  map[string]*attributetype
+	})
 	data.Must = make(map[string]*attributetype)
 	data.May = make(map[string]*attributetype)
 
@@ -174,11 +184,32 @@ func (o Object) Code() (string, error) {
 			data.May[v] = attr
 		}
 
-		tmp := struct{	Must map[string]*attributetype
-				May map[string]*attributetype}{Must: must, May: may}
+		tmp := struct {
+			Must map[string]*attributetype
+			May  map[string]*attributetype
+		}{Must: must, May: may}
 
 		data.ObjectClasses[ocName] = tmp
 	}
+
+	if o.DNFormat != "" && len(o.DNAttributes) == 0 {
+		return "", errors.New("DNFormat without DNAttributes")
+	}
+
+	for _, v := range o.DNAttributes {
+		if _, ok := data.Must[v]; ok {
+			continue
+		}
+
+		if _, ok := data.May[v]; ok {
+			continue
+		}
+
+		return "", errors.New(fmt.Sprintf("Undefined attribute %v in DNAttributes", v))
+	}
+
+	data.DNFormat = o.DNFormat
+	data.DNAttributes = o.DNAttributes
 
 	var w bytes.Buffer
 	err := t.Execute(&w, data)

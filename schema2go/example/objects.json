@@ -3,6 +3,8 @@
 	"Name": "User",
 	"Desc": "A user with several extensions",
 	"ObjectClasses": ["posixAccount","person"],
-	"FilterObjectClass": "posixAccount"
+	"FilterObjectClass": "posixAccount",
+	"DNFormat":"sn=%v",
+	"DNAttributes":["sn"]
 }
 ]

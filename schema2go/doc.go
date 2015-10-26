@@ -52,8 +52,8 @@ For the above example the resulting struct definition would look like this (code
 
 For the conversion following rules are followed:
 
-Names of are derived from the names defined in the schema files by first applying 
-strings.Title() and then removing every "-". Eg. "nick-name" would be converted to 
+Names of are derived from the names defined in the schema files by first applying
+strings.Title() and then removing every "-". Eg. "nick-name" would be converted to
 "NickName".
 
 The struct contains exported boolean fields for every object class it represents.
@@ -76,11 +76,33 @@ Dn and SetDn methods to get and set the dn.
 
 FilterObjectClass method to get the preferred object class for searching.
 
+If two additional fields are present, a convinience method setting the DN to the current values is generated.
+The field "DNFormat" field is a fmt.Sprintf format string. The field "DNAttributes" is a list of attribute names,
+ordered for usage with the format string.
+
+Example:
+	[
+	{
+		"Name": "User",
+		"Desc": "A user with several extensions",
+		"ObjectClasses": ["posixAccount","person"],
+		"FilterObjectClass": "posixAccount",
+		"DNFormat":"sn=%v",
+		"DNAttributes":["sn"]
+	}
+	]
+
+Would generate this code:
+	func (o *User) FormatDn() {
+		o.dn = fmt.Sprintf("sn=%v,sn=%v", []string{o.Sn, o.Sn}...)
+	}
+
+
 [1] https://github.com/bytemine/ldap-crud/crud
 
 [2] https://github.com/rbns/ldap
 
-[3] https://raw.githubusercontent.com/rbns/ldap/master/entry.go 
+[3] https://raw.githubusercontent.com/rbns/ldap/master/entry.go
 
 [4] https://www.ietf.org/rfc/rfc4517.txt
 
