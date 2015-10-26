@@ -4,7 +4,7 @@
 	"Desc": "A user with several extensions",
 	"ObjectClasses": ["posixAccount","person"],
 	"FilterObjectClass": "posixAccount",
-	"DNFilter":"sadfsadf=sn",
-	"DNAttributes":["sn", "sn"]
+	"DNFormat":"sn=%v",
+	"DNAttributes":["sn"]
 }
 ]

@@ -76,6 +76,28 @@ Dn and SetDn methods to get and set the dn.
 
 FilterObjectClass method to get the preferred object class for searching.
 
+If two additional fields are present, a convinience method setting the DN to the current values is generated.
+The field "DNFormat" field is a fmt.Sprintf format string. The field "DNAttributes" is a list of attribute names,
+ordered for usage with the format string.
+
+Example:
+	[
+	{
+		"Name": "User",
+		"Desc": "A user with several extensions",
+		"ObjectClasses": ["posixAccount","person"],
+		"FilterObjectClass": "posixAccount",
+		"DNFormat":"sn=%v",
+		"DNAttributes":["sn"]
+	}
+	]
+
+Would generate this code:
+	func (o *User) FormatDn() {
+		o.dn = fmt.Sprintf("sn=%v,sn=%v", []string{o.Sn, o.Sn}...)
+	}
+
+
 [1] https://github.com/bytemine/ldap-crud/crud
 
 [2] https://github.com/rbns/ldap

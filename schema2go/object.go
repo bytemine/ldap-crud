@@ -43,9 +43,9 @@ func (o *{{ .Name }})Dn() string {
 return o.dn
 }
 
-func (o *{{ .Name }})SetDn() {
+{{ if .DNFormat }}func (o *{{ .Name }})FormatDn() {
 o.dn = fmt.Sprintf("{{ .DNFormat }}", []string{ {{range $v := .DNAttributes}}o.{{$v | title | replace }}, {{end}} }...)
-}
+}{{end}}
 
 func (o *{{ .Name }})MarshalLDAP() (*ldap.Entry, error) {
 e := ldap.NewEntry(o.dn)
@@ -98,8 +98,8 @@ type Object struct {
 	Desc              string
 	ObjectClasses     []string
 	FilterObjectClass string
-	DNFormat	string
-	DNAttributes   	[]string
+	DNFormat          string
+	DNAttributes      []string
 }
 
 // Generates Go-code for itself. The struct and it's methods implement the Item interface of
@@ -128,7 +128,7 @@ func (o Object) Code() (string, error) {
 		DNAttributes      []string
 		Must              map[string]*attributetype
 		May               map[string]*attributetype
-	}{Name: o.Name, Desc: o.Desc, FilterObjectClass: o.FilterObjectClass, DNFormat: o.DNFormat, DNAttributes: o.DNAttributes}
+	}{Name: o.Name, Desc: o.Desc, FilterObjectClass: o.FilterObjectClass}
 
 	data.ObjectClasses = make(map[string]struct {
 		Must map[string]*attributetype
@@ -191,6 +191,25 @@ func (o Object) Code() (string, error) {
 
 		data.ObjectClasses[ocName] = tmp
 	}
+
+	if o.DNFormat != "" && len(o.DNAttributes) == 0 {
+		return "", errors.New("DNFormat without DNAttributes")
+	}
+
+	for _, v := range o.DNAttributes {
+		if _, ok := data.Must[v]; ok {
+			continue
+		}
+
+		if _, ok := data.May[v]; ok {
+			continue
+		}
+
+		return "", errors.New(fmt.Sprintf("Undefined attribute %v in DNAttributes", v))
+	}
+
+	data.DNFormat = o.DNFormat
+	data.DNAttributes = o.DNAttributes
 
 	var w bytes.Buffer
 	err := t.Execute(&w, data)
