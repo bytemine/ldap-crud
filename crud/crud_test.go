@@ -37,9 +37,8 @@ func (p *Person) Copy() Item {
 func (p *Person) Dn() string {
 	if p.dn == "" {
 		return fmt.Sprintf("sn=%v", p.sn[0])
-	} else {
-		return p.dn
 	}
+	return p.dn
 }
 
 func (p *Person) FilterObjectClass() string {
@@ -498,7 +497,7 @@ func TestDeleteSubtree(t *testing.T) {
 		t.Error(err)
 	}
 
-	var fritzSubPerson Person = fritzFoobarPerson
+	var fritzSubPerson = fritzFoobarPerson
 	fritzSubPerson.dn = fmt.Sprintf("sn=%v,%v", fritzSubPerson.sn, fritzFoobarPerson.Dn())
 
 	err = c.Create(&fritzSubPerson)

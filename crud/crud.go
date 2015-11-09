@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Clone of the scope constants of the ldap package for using with ReadAll
+// Scope is a clone of the Scope constants of the ldap package for using with ReadAll.
 type Scope ldap.Scope
 
 const (
@@ -49,7 +49,7 @@ type Manager struct {
 	conn *ldap.Connection
 }
 
-// Create a new Manager.
+// New creates a new Manager.
 //
 // The supplied Connection has to be connected and if necessary
 // bound.
@@ -57,7 +57,7 @@ func New(c *ldap.Connection, baseDn string) *Manager {
 	return &Manager{Debug: false, conn: c, baseDn: baseDn}
 }
 
-// Closes a Manger, preventing further usage.
+// Close closes a Manger and its connections, preventing further usage.
 func (c *Manager) Close() error {
 	return c.conn.Close()
 }
@@ -122,7 +122,7 @@ func (c *Manager) Read(item Item) error {
 	if len(results.Entries) == 0 {
 		return errors.New("No search results.")
 	} else if len(results.Entries) > 1 {
-		errors.New("More than one search result.")
+		return errors.New("More than one search result.")
 	}
 
 	results.Entries[0].DN = c.removeBaseDn(results.Entries[0].DN)
@@ -130,7 +130,7 @@ func (c *Manager) Read(item Item) error {
 	return item.UnmarshalLDAP(results.Entries[0])
 }
 
-// Search for all objects which are of the same type as item and match the criteria.
+// ReadAll searches for all objects which are of the same type as item and match the criteria.
 // dn is the root of the subtree which is searched, scope is the scope of the search, filter
 // is an ldap filter string.
 func (c *Manager) ReadAll(item Item, dn string, scope Scope, filter string) ([]Item, error) {
@@ -304,12 +304,12 @@ func (c *Manager) deleteRecursive(dn string) error {
 	return c.conn.Delete(deleteRequest)
 }
 
-// Delete a subtree
+// DeleteSubtree recursively deletes a subtree without using special controls.
 func (c *Manager) DeleteSubtree(item Item) error {
 	return c.deleteRecursive(c.appendBaseDn(item.Dn()))
 }
 
-// Change the password of a dn
+// Passwd changes the password of a dn.
 func (c *Manager) Passwd(item Item, passwd string) error {
 	var dn string
 	if item == nil {

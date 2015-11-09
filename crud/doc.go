@@ -1,5 +1,5 @@
-/* 
-Package crud implements simple tooling for crud with LDAP. 
+/*
+Package crud implements simple tooling for crud with LDAP.
 
 This is a rather low-level layer to ease the usage of LDAP with Go. It defines a set of
 common operations. These operations are performed on objects implementing the "Item"
