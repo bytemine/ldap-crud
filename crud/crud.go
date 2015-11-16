@@ -132,9 +132,17 @@ func (c *Manager) Read(item Item) error {
 
 // ReadAll searches for all objects which are of the same type as item and match the criteria.
 // dn is the root of the subtree which is searched, scope is the scope of the search, filter
-// is an ldap filter string.
-func (c *Manager) ReadAll(item Item, dn string, scope Scope, filter string) ([]Item, error) {
-	searchRequest := ldap.NewSimpleSearchRequest(c.appendBaseDn(dn), ldap.Scope(scope), filter, nil)
+// is a fmt format string used as filter with args being values for the format string. The arguments are
+// automatically escaped and must fmt.Print to a sane (at least for your LDAP data) value.
+func (c *Manager) ReadAll(item Item, dn string, scope Scope, filter string, args ...interface{}) ([]Item, error) {
+	filteredArgs := make([]interface{}, len(args))
+	for i, v := range args {
+		filteredArgs[i] = ldap.FilterReplace(fmt.Sprint(v))
+	}
+
+	realFilter := fmt.Sprintf(filter, filteredArgs...)
+
+	searchRequest := ldap.NewSimpleSearchRequest(c.appendBaseDn(dn), ldap.Scope(scope), realFilter, nil)
 
 	if c.Debug {
 		log.Println("Search Request:", searchRequest)
@@ -168,16 +176,14 @@ func parentDn(dn string) string {
 // a) Of the same kind as item
 // b) On the same level as item
 func (c *Manager) ReadAllSiblings(item Item) ([]Item, error) {
-	filter := fmt.Sprintf("(objectClass=%v)", item.FilterObjectClass())
-	return c.ReadAll(item, parentDn(item.Dn()), ScopeSingleLevel, filter)
+	return c.ReadAll(item, parentDn(item.Dn()), ScopeSingleLevel, "(objectClass=%v)", item.FilterObjectClass())
 }
 
 // ReadAllSubtree searches for all objects which are:
 // a) Of the same kinde as item
 // b) On the same level and below item
 func (c *Manager) ReadAllSubtree(item Item) ([]Item, error) {
-	filter := fmt.Sprintf("(objectClass=%v)", item.FilterObjectClass())
-	return c.ReadAll(item, parentDn(item.Dn()), ScopeWholeSubtree, filter)
+	return c.ReadAll(item, parentDn(item.Dn()), ScopeWholeSubtree, "(objectClass=%v)", item.FilterObjectClass())
 }
 
 // Are two string slices equal?

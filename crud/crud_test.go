@@ -268,7 +268,7 @@ func testReadAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	entries, err := c.ReadAll(&foobarPerson, "", ScopeWholeSubtree, "(objectClass=person)")
+	entries, err := c.ReadAll(&foobarPerson, "", ScopeWholeSubtree, "(objectClass=%v)", "person")
 	if err != nil {
 		t.Error(err)
 	}
