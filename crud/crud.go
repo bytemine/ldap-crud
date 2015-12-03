@@ -214,24 +214,7 @@ func (c *Manager) newModifyRequest(oldItem Item, newItem Item) (*ldap.ModifyRequ
 		return nil, err
 	}
 
-	// add all new or modified attributes to modifyRequest
-	for _, v := range newEntry.Attributes {
-		oldValues := oldEntry.GetAttributeValues(v.Name)
-		newValues := newEntry.GetAttributeValues(v.Name)
-
-		// if the attribute didn't exist previously, create it
-		if len(oldValues) == 0 {
-			modifyRequest.AddMod(ldap.NewMod(ldap.ModAdd, v.Name, newValues))
-		} else {
-			// if the attribute existed, add a modification operation if the new values differ
-			if !equalStringSlice(oldValues, newValues) {
-				modifyRequest.AddMod(ldap.NewMod(ldap.ModReplace, v.Name, newValues))
-			}
-		}
-
-	}
-
-	// add all removed attributes to modifyRequest
+	// Remove all entries that no more exist
 	for _, v := range oldEntry.Attributes {
 		oldValues := oldEntry.GetAttributeValues(v.Name)
 		newValues := newEntry.GetAttributeValues(v.Name)
@@ -240,6 +223,12 @@ func (c *Manager) newModifyRequest(oldItem Item, newItem Item) (*ldap.ModifyRequ
 		if len(newValues) == 0 {
 			modifyRequest.AddMod(ldap.NewMod(ldap.ModDelete, v.Name, oldValues))
 		}
+	}
+
+	// Add or Modify the other entries.
+	for _, v := range newEntry.Attributes {
+		newValues := newEntry.GetAttributeValues(v.Name)
+		modifyRequest.AddMod(ldap.NewMod(ldap.ModReplace, v.Name, newValues))
 	}
 
 	return modifyRequest, nil
