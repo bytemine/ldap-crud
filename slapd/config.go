@@ -5,14 +5,12 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"text/template"
-	"time"
 )
 
-// Default Config for Slapd
 var DefaultConfig = Config{
+	Loglevel: 0,
 	Suffix: Object{Dn: "dc=example,dc=com",
 		Attributes: map[string][]string{"objectClass": []string{"dcObject", "organization"},
 			"o":  []string{"example.com"},
@@ -22,7 +20,7 @@ var DefaultConfig = Config{
 			"cn": []string{"admin"}},
 		Password: "secret"},
 
-	Schemas:        []string{path.Join(Schemadir, "core.schema")}, // []string{"/etc/ldap/schema/core.schema", "/etc/ldap/schema/cosine.schema", "/etc/ldap/schema/inetorgperson.schema", "/etc/ldap/schema/nis.schema"},
+	Schemas:        []string{},
 	DBType:         "ldif",
 	Addr:           "127.0.0.1:9999",
 	ConfigTemplate: DefaultConfigTemplate,
@@ -57,24 +55,6 @@ access to attrs=userPassword
 access to * by * read
 `
 
-// Configurers can be used to configure a Slapd
-type Configurer interface {
-	// Perform necessary setup steps and return a command ready to start
-	Configure() (*exec.Cmd, error)
-
-	// Initialize the LDAP, for example with entrys for the baseDn (aka suffix) and the rootDn
-	Initialize() error
-
-	// Perform cleanup (like deleting temporary directorys, etc.)
-	Unconfigure() error
-
-	// Return the address used in the slapd config
-	Address() string
-
-	// Maximum number of tries to connect to slapd while waiting
-	Maxtries() uint
-}
-
 // Simple representation of an LDAP object
 type Object struct {
 	Dn         string
@@ -84,6 +64,9 @@ type Object struct {
 
 // Default Configurer implementation for a slapd instance
 type Config struct {
+	// Loglevel (be aware that high loglevels generate really much output, which may clog the pipes).
+	Loglevel int
+
 	// listen address and port of slapd in the format "host:port"
 	Addr string
 
@@ -115,20 +98,9 @@ type Config struct {
 	file *os.File
 }
 
-// Address returns the address where slapd is configured to listen.
-func (c *Config) Address() string {
-	return c.Addr
-}
-
-// Maxtries returns the number of connection attempts to make while waiting for slapd to become ready.
-// Currently this is fixed
-func (c *Config) Maxtries() uint {
-	return 100
-}
-
 // url returns an url to connect to the slapd in the format "ldap://address"
 func (c *Config) url() string {
-	return fmt.Sprintf("ldap://%v", c.Address())
+	return fmt.Sprintf("ldap://%v", c.Addr)
 }
 
 // Create a configuration and a slapd process struct which uses this config
@@ -168,17 +140,17 @@ func (c *Config) Configure() (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	cmd := exec.Command("slapd", "-d254", "-h", c.url(), "-f", c.file.Name())
+	cmd := exec.Command("slapd", "-d", fmt.Sprintf("%v", c.Loglevel), "-h", c.url(), "-f", c.file.Name())
 
 	return cmd, nil
 }
 
-// Remove the slapd directory
+// Unconfigure deletes the slapd directory created by Configure
 func (c *Config) Unconfigure() error {
 	return os.RemoveAll(c.dir)
 }
 
-// Add ldap-entries for the base and the root object
+// Initialize adds entries for the base and the root object
 func (c *Config) Initialize() error {
 	objects := make([]Object, 2)
 	objects[0] = c.Suffix
@@ -207,8 +179,11 @@ func (c *Config) Initialize() error {
 
 	stdinPipe.Close()
 
-	// Stall a bit so that the changes really are written
-	time.Sleep(100 * time.Millisecond)
-
 	return cmd.Wait()
+}
+
+// Clean removes all entries from the ldap. You have to run Initialize() again to re-add the admin entry.
+func (c *Config) Clean() error {
+	cmd := exec.Command("ldapdelete", "-r", "-x", "-D", c.Rootdn.Dn, "-w", c.Rootdn.Password, "-H", c.url(), c.Suffix.Dn)
+	return cmd.Run()
 }
